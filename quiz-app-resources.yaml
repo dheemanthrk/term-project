@@ -1,18 +1,70 @@
+# AWSTemplateFormatVersion: '2010-09-09'
+# Resources:
+#   QuizQuestionsTable:
+#     Type: 'AWS::DynamoDB::Table'
+#     Properties:
+#       TableName: 'QuizQuestions'
+#       AttributeDefinitions:
+#         - AttributeName: 'quizSetId'
+#           AttributeType: 'S'
+#       KeySchema:
+#         - AttributeName: 'quizSetId'
+#           KeyType: 'HASH'
+#       ProvisionedThroughput:
+#         ReadCapacityUnits: 5
+#         WriteCapacityUnits: 5
+#       Tags: # Optional, add tags as needed
+#         - Key: 'Name'
+#           Value: 'QuizQuestionsTable'
 AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for DynamoDB table and Lambda function'
+
 Resources:
-  QuizQuestionsTable:
+  DynamoDBTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
       TableName: 'QuizQuestions'
       AttributeDefinitions:
-        - AttributeName: 'quizSetId'
+        - AttributeName: 'ID'
           AttributeType: 'S'
       KeySchema:
-        - AttributeName: 'quizSetId'
+        - AttributeName: 'ID'
           KeyType: 'HASH'
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-      Tags: # Optional, add tags as needed
-        - Key: 'Name'
-          Value: 'QuizQuestionsTable'
+      BillingMode: 'PAY_PER_REQUEST'
+
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'CreateQuizQuestion'
+      Handler: 'index.handler'
+      Role: 'arn:aws:iam::767397810292:role/LabRole'
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table('QuizQuestions')
+
+          def handler(event, context):
+              try:
+                  data = json.loads(event['body'])
+                  response = table.put_item(
+                      Item={
+                          'ID': data['ID'],
+                          'QuestionText': data['QuestionText'],
+                          'Options': data['Options'],
+                          'CorrectAnswer': data['CorrectAnswer']
+                      }
+                  )
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps('Question added successfully')
+                  }
+              except Exception as e:
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps(str(e))
+                  }
+      Runtime: 'python3.8'
+      Timeout: 30
