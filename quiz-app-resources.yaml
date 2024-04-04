@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  QuizQuestionsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: 'QuizQuestions'
+      AttributeDefinitions:
+        - AttributeName: 'quizSetId'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'quizSetId'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      Tags: # Optional, add tags as needed
+        - Key: 'Name'
+          Value: 'QuizQuestionsTable'
