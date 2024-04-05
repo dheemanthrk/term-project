@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for DynamoDB table and Lambda function'
+
+Resources:
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: 'QuizQuestions'
+      AttributeDefinitions:
+        - AttributeName: 'ID'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'ID'
+          KeyType: 'HASH'
+      BillingMode: 'PAY_PER_REQUEST'
+
+  CreateQuizQuestionFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'CreateQuizQuestion'
+      Handler: 'index.handler'
+      Role: 'arn:aws:iam::767397810292:role/LabRole'
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          def create_quiz_set(event, context):
+              # Parse the incoming request
+              request_body = json.loads(event['body'])
+              quiz_set_id = request_body['quiz_set_id']
+              questions = request_body['questions']
+              options = request_body['options']
+              correct_answers = request_body['correct_answers']
+
+              # Validate the input data
+              if not quiz_set_id or not questions or not options or not correct_answers:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps({'message': 'Missing required fields'})
+                  }
+
+              # Connect to DynamoDB
+              dynamodb = boto3.resource('dynamodb')
+              table = dynamodb.Table('QuizSets')
+
+              # Insert the new quiz set into DynamoDB
+              try:
+                  table.put_item(Item={
+                      'quiz_set_id': quiz_set_id,
+                      'questions': questions,
+                      'options': options,
+                      'correct_answers': correct_answers
+                  })
+              except Exception as e:
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({'message': 'Failed to create quiz set', 'error': str(e)})
+                  }
+
+              # Return success response
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'message': 'Quiz set created successfully'})
+              }
+
+      Runtime: 'python3.8'
+      Timeout: 30
+
+  RetrieveQuizQuestionFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'RetreiveQuizQuestion'
+      Handler: 'index.handler'
+      Role: 'arn:aws:iam::767397810292:role/LabRole'
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          def retrieve_quiz_set(event, context):
+              # Parse the incoming request to extract the quiz set ID
+              quiz_set_id = event['queryStringParameters']['quiz_set_id']
+
+              # Connect to DynamoDB
+              dynamodb = boto3.resource('dynamodb')
+              table = dynamodb.Table('QuizSets')
+
+              # Retrieve the quiz set from DynamoDB
+              try:
+                  response = table.get_item(Key={'quiz_set_id': quiz_set_id})
+                  quiz_set = response.get('Item')
+                  if not quiz_set:
+                      return {
+                          'statusCode': 404,
+                          'body': json.dumps({'message': 'Quiz set not found'})
+                      }
+              except Exception as e:
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({'message': 'Failed to retrieve quiz set', 'error': str(e)})
+                  }
+
+              # Return the retrieved quiz set
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(quiz_set)
+              }
+
+      Runtime: 'python3.8'
+      Timeout: 30
