@@ -12,13 +12,16 @@ Resources:
       KeySchema:
         - AttributeName: 'ID'
           KeyType: 'HASH'
-      BillingMode: 'PAY_PER_REQUEST'
+      BillingMode: 'PROVISIONED'  # Use provisioned capacity
+      ProvisionedThroughput:      # Define provisioned throughput
+        ReadCapacityUnits: 5     # Adjust according to your read capacity needs within Free Tier limits
+        WriteCapacityUnits: 5
 
   CreateQuizQuestionFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
       FunctionName: 'CreateQuizQuestion'
-      Handler: 'index.handler'
+      Handler: 'index.create_quiz_set'
       Role: 'arn:aws:iam::767397810292:role/LabRole'
       Code:
         ZipFile: |
@@ -42,7 +45,7 @@ Resources:
 
               # Connect to DynamoDB
               dynamodb = boto3.resource('dynamodb')
-              table = dynamodb.Table('QuizSets')
+              table = dynamodb.Table('QuizQuestions')
 
               # Insert the new quiz set into DynamoDB
               try:
@@ -71,7 +74,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       FunctionName: 'RetrieveQuizQuestion'
-      Handler: 'index.handler'
+      Handler: 'index.retrieve_quiz_set'
       Role: 'arn:aws:iam::767397810292:role/LabRole'
       Code:
         ZipFile: |
@@ -84,7 +87,7 @@ Resources:
 
               # Connect to DynamoDB
               dynamodb = boto3.resource('dynamodb')
-              table = dynamodb.Table('QuizSets')
+              table = dynamodb.Table('QuizQuestions')
 
               # Retrieve the quiz set from DynamoDB
               try:
@@ -114,7 +117,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       FunctionName: 'UpdateQuizQuestion'
-      Handler: 'index.handler'
+      Handler: 'index.update_quiz_set'
       Role: 'arn:aws:iam::767397810292:role/LabRole'
       Code:
         ZipFile: |
@@ -129,7 +132,7 @@ Resources:
 
               # Connect to DynamoDB
               dynamodb = boto3.resource('dynamodb')
-              table = dynamodb.Table('QuizSets')
+              table = dynamodb.Table('QuizQuestions')
 
               # Update the quiz set in DynamoDB
               try:
@@ -159,7 +162,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       FunctionName: 'DeleteQuizQuestion'
-      Handler: 'index.handler'
+      Handler: 'index.delete_quiz_set'
       Role: 'arn:aws:iam::767397810292:role/LabRole'
       Code:
         ZipFile: |
@@ -173,7 +176,7 @@ Resources:
 
               # Connect to DynamoDB
               dynamodb = boto3.resource('dynamodb')
-              table = dynamodb.Table('QuizSets')
+              table = dynamodb.Table('QuizQuestions')
 
               # Delete the quiz set from DynamoDB
               try:
